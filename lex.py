@@ -100,7 +100,7 @@ for line in lines:
 # Inicializa arquivo de saída
 output = open('output.txt', 'w')
 
-# Prints da saída
+# Apresentando saída na linha de comando e arquivo output.txt
 print('\nTokens de Entrada')
 output.write('Tokens de Entrada\n')
 for token in read_tokens:
