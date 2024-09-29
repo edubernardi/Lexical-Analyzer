@@ -1,3 +1,4 @@
+#Alunos: Eduardo Bernardi e Marco Donini Jr.
 import ply.lex as lex
 
 def validate(tokens):
