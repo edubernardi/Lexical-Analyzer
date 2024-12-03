@@ -1,0 +1,7 @@
+reconhecimento de declaração de variáveis
+
+reconhecimento dos comandos de seleção
+
+reconhecimento dos comandos de repetição
+
+Operadores Matemáticos

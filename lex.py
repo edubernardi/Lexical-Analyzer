@@ -1,126 +1,144 @@
+#Alunos: Eduardo Bernardi e Marco Donini Jr.
 import ply.lex as lex
-from ply.lex import TOKEN
 
-# Inicializando listas e dicionários para armazenar tokens lidos, símbolos e erros
-read_tokens = [] # Armazena os tokens lidos
-symbols = []     # Armazena os símbolos identificados
-errors = {}      # Armazena os erros encontrados por linha
+def validate(tokens):
+    expected_next = "FUNCTION_NAME"
+    arguments_section = False
+    parenthesis_count = 0
+    for token in tokens:
+        if token == 'FUNCTION_NAME':
+            if expected_next == "FUNCTION_NAME":
+                expected_next = "OPEN_PARENTHESIS"
+            else:
+                return False
+        
+        elif arguments_section:
+            if token == 'COMMA' and expected_next == 'COMMA_OR_CLOSE' or token == 'OPERATOR' and expected_next == 'COMMA_OR_CLOSE':
+                expected_next = "VARIABLE"
+            elif token == 'CLOSE_PARENTHESIS':
+                parenthesis_count -= 1
+                expected_next = "COMMA_OR_CLOSE"
+                if parenthesis_count == 0:
+                    expected_next = "SEMICOLON"
+                    arguments_section = False
+            elif token == 'VARIABLE':
+                expected_next = "COMMA_OR_CLOSE"
+            elif token == 'OPEN_PARENTHESIS':
+                parenthesis_count += 1
+                expected_next = 'VARIABLE'
+            else:
+                return False
 
+        elif token == 'OPEN_PARENTHESIS':
+            if expected_next == "OPEN_PARENTHESIS":
+                parenthesis_count += 1
+                expected_next = "FORMAT_STRING"
+            else:
+                return False
+        
+        elif token == 'FORMAT_STRING':
+            if expected_next == "FORMAT_STRING":   
+                expected_next = "COMMA_OR_CLOSE"
+            else:
+                return False
+        
+        elif expected_next == "COMMA_OR_CLOSE":
+            if token == 'COMMA' or token == 'OPERATOR':
+                expected_next = "VARIABLE"
+                arguments_section = True
+            elif token == 'CLOSE_PARENTHESIS':
+                parenthesis_count -= 1
+                expected_next = "SEMICOLON"
+                if parenthesis_count == 0:
+                    arguments_section = False
+            elif token == 'SEMICOLON' and parenthesis_count == 0:
+                return True
+            else:
+                return False
 
-# Definindo palavras reservadas da linguagem
-reserved = {
-   'int' : 'INT',
-   'double' : 'DOUBLE',
-   'float' : 'FLOAT',
-   'real' : 'REAL',
-   'break' : 'BREAK',
-   'case' : 'CASE',
-   'char' : 'CHAR',
-   'const' : 'CONST',
-   'continue' : 'CONTINUE',
-}
+        elif expected_next == "VARIABLE":
+            if token in ['VARIABLE', 'NUMBER', 'FORMAT_STRING']:
+                expected_next = "COMMA_OR_CLOSE"
+            else:
+                return False
+                  
+        elif expected_next == "SEMICOLON":
+            if token == 'SEMICOLON':
+                return True
+            else:
+                return False
 
-# Lista de tokens
-tokens = [
-   'IDENTIFICADOR',
-   'NUMERO_INTEIRO',
-   'NUMERO_REAL',
-   'COMENTARIO'
-] + list(reserved.values()) # Incluindo as palavras reservadas na lista de tokens
+tokens = (
+    'FUNCTION_NAME',
+    'OPEN_PARENTHESIS',
+    'CLOSE_PARENTHESIS',
+    'FORMAT_STRING',
+    'COMMA',
+    'VARIABLE',
+    'SEMICOLON',
+    'OPERATOR'
+)
 
-# Expressões regulares para os diferentes tipos de tokens
-t_COMENTARIO     = r'^//.*$' # Expressão para identificar comentários
+t_OPEN_PARENTHESIS = r'\('
+t_CLOSE_PARENTHESIS = r'\)'
+t_COMMA = r','
+t_SEMICOLON = r';'
+t_OPERATOR = r'[-+*/]'
 
-# Definição de expressões regulares auxiliares
-digit            = r'([0-9])' # Define um dígito
-nondigit         = r'([A-Za-z])' # Define um não-dígito
-identifier       = r'^(' + nondigit + r'(' + digit + r'|' + nondigit + r')*)$'  # Identifica nomes válidos de identificadores
-
-# Expressões regulares para números
-constant_decimal = r'^(((' + digit + ' ) | (' + digit + digit + ')) \\. (' + digit + digit + '))$'
-constant_whole   = r'^((' + digit + digit + ') | (' + digit + ' ))$'
-
-
-
-# Definição de tokens e ações associadas
-@TOKEN(identifier)
-def t_IDENTIFICADOR(t):
-    t.type = reserved.get(t.value,'IDENTIFICADOR')    # Verifica se o identificador é uma palavra reservada
+def t_FUNCTION_NAME(t):
+    r'printf'
     return t
 
-@TOKEN(constant_decimal)
-def t_NUMERO_REAL(t):
-    t.value = float(t.value) # Converte o valor para float
+def t_VARIABLE(t):
+    r'[a-zA-Z_][a-zA-Z0-9_]*'
     return t
 
-@TOKEN(constant_whole)
-def t_NUMERO_INTEIRO(t):
-    t.value = int(t.value)  # Converte o valor para inteiro
+def t_FORMAT_STRING(t):
+    r'"([^"\\]*(\\.[^"\\]*)*)"'
     return t
 
-# Regra para rastrear números de linhas
+# Ignorar espaço
+t_ignore = ' '
+
+# Ignorar quebra de linha
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
 
-# Caracteres a serem ignorados (espaços e tabulações)
-t_ignore  = ' \t'
-
-# Regra para tratamento de erros
+# Gerenciamento dos erros
 def t_error(t):
+    print(f"Caractere ilegal '{t.value[0]}'")
     t.lexer.skip(1)
     return 'error'
 
-# Construir o analisador léxico
+# Inicializando o lexer
 lexer = lex.lex()
 
-# Lendo o arquivo de entrada
-f = open('input.text', 'r')
 
+f = open('input.txt')
 lines = f.readlines()
 
-line_counter = 0 # Contador de linhas
-
 for line in lines:
-    line_counter += 1
-    lexer.input(line)
-    tok = lexer.token()
+    command = line
+    lexer.input(command)
+    print(f"\n{command[0: -1]}")    
+    tokens_list = []
+    invalid = False
+    while True:
+        tok = lexer.token()
+        if tok == 'error':
+           print("Não pertence à gramática.")
+           invalid = True
+           break
+        if not tok:
+            break 
+        tokens_list.append(tok)
+    if not invalid:  
+        tokens = [tok.type for tok in tokens_list]
 
-    # Se houver erro, armazena a linha com erro
-    if tok == "error":
-        errors[line_counter] = line[:-1]
-    else:
-        # Armazena os tokens lidos 
-        if tok is not None:
-            tok.lineno = line_counter
-            read_tokens.append(tok)
-            if tok.value not in symbols and tok.value not in reserved.keys() and tok.type != "COMENTARIO":
-                symbols.append(tok.value)
-
-# Inicializa arquivo de saída
-output = open('output.txt', 'w')
-
-# Apresentando saída na linha de comando e arquivo output.txt
-print('\nTokens de Entrada')
-output.write('Tokens de Entrada\n')
-for token in read_tokens:
-    if token.value not in reserved.keys() and token.type != "COMENTARIO":    
-        symbol_id = symbols.index(token.value) + 1
-    else:
-        symbol_id = ""
-    print(f'[{token.lineno}] {token.type} {symbol_id}')
-    output.write(f'[{token.lineno}] {token.type} {symbol_id}\n')
-
-print('\nTabela de símbolos')
-output.write('\nTabela de símbolos\n')
-i = 0
-for symbol in symbols:
-    i += 1
-    print(f'[{i}] {symbol}')
-    output.write(f'[{i}] {symbol}\n')
-
-print('\nErros nas linhas')
-output.write('\nErros nas linhas\n')
-for line in errors.keys():
-    print(f'{line} ({errors[line]})')
-    output.write(f'{line} ({errors[line]})\n')
+        if validate(tokens):
+            print("Pertence à gramática!")
+            print(f"Tokens: {tokens}")
+        else:
+            print("Não pertence à gramática.")
+            print(f"Tokens: {tokens}")
