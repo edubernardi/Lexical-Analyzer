@@ -8,5 +8,3 @@ printf("Value: %d", x);
 printf("%s is %d years old", name, age);
 printf("Sum: %d + %d = %d", a, b, a+b);
 printf("Hex value: %x", hex_value);
-int c = 10;
-string a = "ll";

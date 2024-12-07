@@ -2,6 +2,15 @@
 import ply.lex as lex
 
 def validate(tokens):
+    if len(tokens) < 1:
+        return True
+    if tokens[0] == 'FUNCTION_NAME':
+        if not validate_function(tokens):
+            return False
+    return True
+    
+
+def validate_function(tokens):
     expected_next = "FUNCTION_NAME"
     arguments_section = False
     parenthesis_count = 0
@@ -64,6 +73,10 @@ def validate(tokens):
                   
         elif expected_next == "SEMICOLON":
             if token == 'SEMICOLON':
+                index = tokens.index(token)
+                validate(tokens[index + 1:])
+                print(f"Tokens: {tokens[:index + 1]}")
+                print("Pertence à gramática!")
                 return True
             else:
                 return False
@@ -118,11 +131,12 @@ lexer = lex.lex()
 f = open('input.txt')
 lines = f.readlines()
 
+invalid = False
+tokens_list = []
 for line in lines:
     command = line
     lexer.input(command)
-    print(f"\n{command[0: -1]}")    
-    tokens_list = []
+    print(f"\n{command[0: -1]}")
     invalid = False
     while True:
         tok = lexer.token()
@@ -133,12 +147,8 @@ for line in lines:
         if not tok:
             break 
         tokens_list.append(tok)
-    if not invalid:  
-        tokens = [tok.type for tok in tokens_list]
-
-        if validate(tokens):
-            print("Pertence à gramática!")
-            print(f"Tokens: {tokens}")
-        else:
-            print("Não pertence à gramática.")
-            print(f"Tokens: {tokens}")
+if not invalid:  
+    tokens = [tok.type for tok in tokens_list]
+    if not validate(tokens):
+        print("Não pertence à gramática.")
+        print(f"Tokens: {tokens}")
