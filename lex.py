@@ -12,6 +12,10 @@ def validate(tokens):
         tokens = validate_while(tokens)
         if tokens is None:
             return None
+    elif tokens[0] == 'FOR':
+        tokens = validate_for(tokens)
+        if tokens is None:
+            return None
     return tokens
 
 def validate_while(tokens):
@@ -30,9 +34,13 @@ def validate_while(tokens):
                 i = 0
                 if tokens is None:
                     return None
-                expected_next = "OPEN_BRACKETS"
+                expected_next = "CLOSE_PARENTHESIS"
             else:
                 return False
+        elif tokens[i] == 'CLOSE_PARENTHESIS':
+            if expected_next == 'CLOSE_PARENTHESIS':
+                i += 1
+                expected_next = "OPEN_BRACKETS"
         elif tokens[i] == "OPEN_BRACKETS":
             if expected_next == "OPEN_BRACKETS":
                 tokens = validate(tokens[i + 1:])
@@ -47,15 +55,37 @@ def validate_while(tokens):
             return None
         
 def validate_for(tokens):
-    expected_next = "WHILE"
+    expected_next = "FOR"
+    condition = False
     i = 0 
     while i < len(tokens):
-        if tokens[i] == 'WHILE':
-            if expected_next == 'WHILE':
+        if tokens[i] == "FOR":
+            if expected_next == 'FOR':
                 expected_next = "OPEN_PARENTHESIS"
                 i += 1
             else:
                 return False
+        elif tokens[i] == "OPEN_PARENTHESIS":
+            if expected_next == "OPEN_PARENTHESIS":
+                tokens = validate_attribution(tokens[i + 1:])
+                i = 0
+                if tokens is None:
+                    return None
+                expected_next = "SEMICOLON"
+            else:
+                return False
+        elif tokens[i] == "SEMICOLON":
+            if expected_next == "SEMICOLON":
+                if not condition:
+                    tokens = validate_condition(tokens[i + 1:])
+                    condition = True
+                    expected_next = "SEMICOLON"
+                else:
+                    tokens = validate_increment(tokens[i + 1:])
+                    expected_next = "OPEN_BRACKETS"
+                i = 0
+                if tokens is None:
+                    return None
         elif tokens[i] == "OPEN_PARENTHESIS":
             if expected_next == "OPEN_PARENTHESIS":
                 tokens = validate_condition(tokens[i + 1:])
@@ -84,12 +114,12 @@ def validate_condition(tokens):
     for i in range(0, len(tokens)):
         if tokens[i] == "NUMBER":
             if tokens[i] in expected_next:
-                expected_next = ["CLOSE_PARENTHESIS", "COMPARISON"]
+                expected_next = ["SEMICOLON", "COMPARISON", "CLOSE_PARENTHESIS"]
             else:
                 return None
         elif tokens[i] == "VARIABLE":
             if tokens[i] in expected_next:
-                expected_next = ["CLOSE_PARENTHESIS", "COMPARISON"]
+                expected_next = ["SEMICOLON", "COMPARISON", "CLOSE_PARENTHESIS"]
             else:
                 return None
         elif tokens[i] == "COMPARISON":
@@ -97,12 +127,77 @@ def validate_condition(tokens):
                 expected_next = ["VARIABLE", "NUMBER"]
             else:
                 return None
+        elif tokens[i] in ["SEMICOLON", "CLOSE_PARENTHESIS"]:
+            if tokens[i] in expected_next:
+                return tokens[i:]
+            else:
+                return None
+    
+
+def validate_attribution(tokens):
+    expected_next = ["VARIABLE"]
+    attribution = False
+    for i in range(0, len(tokens)):
+        if tokens[i] == "NUMBER" or tokens[i] == "FORMAT_STRING":
+            if tokens[i] in expected_next:
+                expected_next = ["SEMICOLON"]
+            else:
+                return None
+        elif tokens[i] == "VARIABLE":
+            if tokens[i] in expected_next:
+                if not attribution:
+                    expected_next = ["ATTRIBUTION"]
+                else:
+                    expected_next = ["SEMICOLON"]
+            else:
+                return None
+        elif tokens[i] == "ATTRIBUTION":
+            if tokens[i] in expected_next:
+                expected_next = ["VARIABLE", "NUMBER", "FORMAT_STRING"]
+            else:
+                return None
+        elif tokens[i] == "SEMICOLON":
+            if tokens[i] in expected_next:
+                return tokens[i:]
+            else:
+                return None
+
+def validate_increment(tokens):
+    expected_next = ["VARIABLE"]
+    operator = False
+    for i in range(0, len(tokens)):
+        if tokens[i] == "NUMBER" or tokens[i] == "FORMAT_STRING":
+            if tokens[i] in expected_next:
+                expected_next = ["CLOSE_PARENTHESIS"]
+            else:
+                return None
+        elif tokens[i] == "VARIABLE":
+            if tokens[i] in expected_next:
+                if not operator:
+                    expected_next = ["ATTRIBUTION", "INCREMENT"]
+                else:
+                    expected_next = ["CLOSE_PARENTHESIS"]
+            else:
+                return None
+        elif tokens[i] == "ATTRIBUTION":
+            if tokens[i] in expected_next:
+                expected_next = ["VARIABLE", "NUMBER"]
+                operator = True
+            else:
+                return None
+        elif tokens[i] == "INCREMENT":
+            if tokens[i] in expected_next:
+                expected_next = ["CLOSE_PARENTHESIS"]
+            else:
+                return None
+        
         elif tokens[i] == "CLOSE_PARENTHESIS":
             if tokens[i] in expected_next:
                 return tokens[i + 1:]
             else:
                 return None
-    
+
+
 def validate_function(tokens):
     expected_next = "FUNCTION_NAME"
     arguments_section = False
@@ -183,12 +278,15 @@ tokens = (
     'COMMA',
     'VARIABLE',
     'SEMICOLON',
-    'OPERATOR',
     'WHILE',
+    'FOR',
     'NUMBER',
     'OPEN_BRACKETS',
     'CLOSE_BRACKETS',
-    'COMPARISON'
+    'COMPARISON',
+    'ATTRIBUTION',
+    'ARITHMETIC',
+    'INCREMENT'
 )
 
 t_OPEN_PARENTHESIS = r'\('
@@ -197,7 +295,6 @@ t_OPEN_BRACKETS = r'\{'
 t_CLOSE_BRACKETS = r'\}'
 t_COMMA = r','
 t_SEMICOLON = r';'
-t_OPERATOR = r'[-+*/]'
 
 def t_FUNCTION_NAME(t):
     r'printf'
@@ -205,6 +302,10 @@ def t_FUNCTION_NAME(t):
 
 def t_WHILE(t):
     r'while'
+    return t
+
+def t_FOR(t):
+    r'for'
     return t
 
 def t_VARIABLE(t):
@@ -222,6 +323,18 @@ def t_NUMBER(t):
 
 def t_COMPARISON(t):
     r'==|!=|<=|>=|<|>'
+    return t
+
+def t_ATTRIBUTION(t):
+    r'=|\+=|-=|\*=|/=|%='
+    return t
+
+def t_INCREMENT(t):
+    r'\+\+|--'
+    return t
+
+def t_ARITHMETIC(t):
+    r'\+|-|\*|/'
     return t
 
 # Ignorar espaço
@@ -242,7 +355,7 @@ def t_error(t):
 lexer = lex.lex()
 
 
-f = open('while.txt')
+f = open('for.txt')
 lines = f.readlines()
 
 invalid = False
