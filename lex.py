@@ -42,7 +42,8 @@ def validate_while(tokens):
                 expected_next = "CLOSE_BRACKETS"
         elif tokens[i] == "CLOSE_BRACKETS":
             if expected_next == "CLOSE_BRACKETS":
-                return tokens[i + 1:]
+                tokens = validate(tokens[i + 1:])
+                return tokens
             return None
 
 def validate_condition(tokens):
@@ -73,71 +74,73 @@ def validate_function(tokens):
     expected_next = "FUNCTION_NAME"
     arguments_section = False
     parenthesis_count = 0
-    for token in tokens:
-        if token == 'FUNCTION_NAME':
+    i = 0
+    while i < len(tokens):
+        if tokens[i] == 'FUNCTION_NAME':
             if expected_next == "FUNCTION_NAME":
                 expected_next = "OPEN_PARENTHESIS"
             else:
                 return None
         
         elif arguments_section:
-            if token == 'COMMA' and expected_next == 'COMMA_OR_CLOSE' or token == 'OPERATOR' and expected_next == 'COMMA_OR_CLOSE':
+            if tokens[i] == 'COMMA' and expected_next == 'COMMA_OR_CLOSE' or tokens[i] == 'OPERATOR' and expected_next == 'COMMA_OR_CLOSE':
                 expected_next = "VARIABLE"
-            elif token == 'CLOSE_PARENTHESIS':
+            elif tokens[i] == 'CLOSE_PARENTHESIS':
                 parenthesis_count -= 1
                 expected_next = "COMMA_OR_CLOSE"
                 if parenthesis_count == 0:
                     expected_next = "SEMICOLON"
                     arguments_section = False
-            elif token == 'VARIABLE':
+            elif tokens[i] == 'VARIABLE':
                 expected_next = "COMMA_OR_CLOSE"
-            elif token == 'OPEN_PARENTHESIS':
+            elif tokens[i] == 'OPEN_PARENTHESIS':
                 parenthesis_count += 1
                 expected_next = 'VARIABLE'
             else:
                 return None
 
-        elif token == 'OPEN_PARENTHESIS':
+        elif tokens[i] == 'OPEN_PARENTHESIS':
             if expected_next == "OPEN_PARENTHESIS":
                 parenthesis_count += 1
                 expected_next = "FORMAT_STRING"
             else:
                 return None
         
-        elif token == 'FORMAT_STRING':
+        elif tokens[i] == 'FORMAT_STRING':
             if expected_next == "FORMAT_STRING":   
                 expected_next = "COMMA_OR_CLOSE"
             else:
                 return None
         
         elif expected_next == "COMMA_OR_CLOSE":
-            if token == 'COMMA' or token == 'OPERATOR':
+            if tokens[i] == 'COMMA' or tokens[i] == 'OPERATOR':
                 expected_next = "VARIABLE"
                 arguments_section = True
-            elif token == 'CLOSE_PARENTHESIS':
+            elif tokens[i] == 'CLOSE_PARENTHESIS':
                 parenthesis_count -= 1
                 expected_next = "SEMICOLON"
                 if parenthesis_count == 0:
                     arguments_section = False
-            elif token == 'SEMICOLON' and parenthesis_count == 0:
-                index = tokens.index(token)
+            elif tokens[i] == 'SEMICOLON' and parenthesis_count == 0:
+                index = tokens.index(tokens[i])
                 return index
             else:
                 return None
 
         elif expected_next == "VARIABLE":
-            if token in ['VARIABLE', 'NUMBER', 'FORMAT_STRING']:
+            if tokens[i] in ['VARIABLE', 'NUMBER', 'FORMAT_STRING']:
                 expected_next = "COMMA_OR_CLOSE"
             else:
                 return None
                   
         elif expected_next == "SEMICOLON":
-            if token == 'SEMICOLON':
-                index = tokens.index(token)
-                tokens = validate(tokens[index + 1:])
+            if tokens[i] == 'SEMICOLON':
+                tokens = validate(tokens[i + 1:])
                 return tokens
             else:
                 return None
+            
+        i += 1
 
 tokens = (
     'FUNCTION_NAME',
