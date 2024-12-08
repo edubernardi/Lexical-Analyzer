@@ -45,6 +45,39 @@ def validate_while(tokens):
                 tokens = validate(tokens[i + 1:])
                 return tokens
             return None
+        
+def validate_for(tokens):
+    expected_next = "WHILE"
+    i = 0 
+    while i < len(tokens):
+        if tokens[i] == 'WHILE':
+            if expected_next == 'WHILE':
+                expected_next = "OPEN_PARENTHESIS"
+                i += 1
+            else:
+                return False
+        elif tokens[i] == "OPEN_PARENTHESIS":
+            if expected_next == "OPEN_PARENTHESIS":
+                tokens = validate_condition(tokens[i + 1:])
+                i = 0
+                if tokens is None:
+                    return None
+                expected_next = "OPEN_BRACKETS"
+            else:
+                return False
+        elif tokens[i] == "OPEN_BRACKETS":
+            if expected_next == "OPEN_BRACKETS":
+                tokens = validate(tokens[i + 1:])
+                i = 0
+                if tokens is None:
+                    return None
+                expected_next = "CLOSE_BRACKETS"
+        elif tokens[i] == "CLOSE_BRACKETS":
+            if expected_next == "CLOSE_BRACKETS":
+                tokens = validate(tokens[i + 1:])
+                return tokens
+            return None
+        
 
 def validate_condition(tokens):
     expected_next = ["VARIABLE", "NUMBER"]
