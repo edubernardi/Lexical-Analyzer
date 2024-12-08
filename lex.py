@@ -311,7 +311,7 @@ def validate_function(tokens):
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         
         elif arguments_section:
-            if tokens[i] == 'COMMA' and expected_next == 'COMMA_OR_CLOSE' or tokens[i] == 'OPERATOR' and expected_next == 'COMMA_OR_CLOSE':
+            if tokens[i] == 'COMMA' and expected_next == 'COMMA_OR_CLOSE' or tokens[i] == 'ARITHMETIC' and expected_next == 'COMMA_OR_CLOSE':
                 expected_next = "VARIABLE"
             elif tokens[i] == 'CLOSE_PARENTHESIS':
                 parenthesis_count -= 1
