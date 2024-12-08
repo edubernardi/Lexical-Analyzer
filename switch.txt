@@ -1,0 +1,10 @@
+switch (number) {
+    case 1:
+        printf("Number is 1");
+    case 2:
+        printf("Number is 2");
+    case 3:
+        printf("Number is 3");
+    default:
+        printf("Number is not 1, 2, or 3");
+}
