@@ -73,6 +73,8 @@ def validate_if(tokens):
                 i += 1
                 expected_next = "OPEN_BRACKETS"
                 hasElse = True
+        else:
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")
     raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_declaration(tokens):
@@ -562,7 +564,7 @@ def t_error(t):
 # Inicializando o lexer
 lexer = lex.lex()
 
-f = open('for.txt')
+f = open('input.txt')
 lines = f.readlines()
 
 invalid = False

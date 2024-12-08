@@ -1,10 +1,17 @@
-printf("valor = d", nro);
-printf("O calculo correto da expressão %i + %i = %i", nro, nro, nro + nro);
-printf("O produto = %.2f", produto(nro,nro));
-printf("Olá mundo!");
-printf("O calculo correto da expressão %i + %i = %i", nro, nro, (nro));
-printf("Hello, World!");
-printf("Value: %d", x);
-printf("%s is %d years old", name, age);
-printf("Sum: %d + %d = %d", a, b, a);
-printf("Hex value: %x", hex_value);
+int a;
+int count;
+for (i = 1; i <= 10; i++) {
+    a += 1;
+    printf("%d\n", a);
+    while (count <= 10) {
+        count += 2;
+        if (count == 2){
+            printf("Par");
+        }
+        printf("%d\n", count);
+        while (a <= 5) {
+            printf("%d\n", count);
+        }
+        printf("%d\n", count);
+    }
+}
