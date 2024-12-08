@@ -6,5 +6,5 @@ switch (number) {
     case 3:
         printf("Number is 3");
     default:
-        printf("Number is not 1, 2, or 3")
+        printf("Number is not 1, 2, or 3");
 }

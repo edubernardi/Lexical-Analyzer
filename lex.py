@@ -12,7 +12,30 @@ def validate(tokens):
         tokens = validate_for(tokens)
     elif tokens[0] == 'SWITCH':
         tokens = validate_switch(tokens)
+    elif tokens[0] == 'TYPE':
+        tokens = validate_declaration(tokens)
     return tokens
+
+def validate_declaration(tokens):
+    expected_next = 'TYPE'
+    for i in range(0, len(tokens)):
+        if tokens[i] == 'TYPE':
+            if tokens[i] in expected_next:
+                expected_next = "VARIABLE"
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == 'VARIABLE':
+            if tokens[i] in expected_next:
+                expected_next = 'SEMICOLON'
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == 'SEMICOLON':
+            if tokens[i] in expected_next:
+                tokens = validate(tokens[i + 1:])
+                return tokens
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_switch(tokens):
     expected_next = "SWITCH"
@@ -80,7 +103,8 @@ def validate_switch(tokens):
                 return tokens
             raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
-            i += 1
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_while(tokens):
     expected_next = "WHILE"
@@ -118,7 +142,8 @@ def validate_while(tokens):
                 return tokens
             raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
-            i += 1
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
         
 def validate_for(tokens):
     expected_next = "FOR"
@@ -174,8 +199,8 @@ def validate_for(tokens):
                 return tokens
             raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
-            i += 1
-        
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")        
 
 def validate_condition(tokens):
     expected_next = ["VARIABLE", "NUMBER"]
@@ -202,6 +227,7 @@ def validate_condition(tokens):
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
             i =+ 1
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_attribution(tokens):
     expected_next = ["VARIABLE"]
@@ -231,7 +257,8 @@ def validate_attribution(tokens):
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
-            i += 1
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_increment(tokens):
     expected_next = ["VARIABLE"]
@@ -268,8 +295,8 @@ def validate_increment(tokens):
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
-            i += 1
-
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_function(tokens):
     expected_next = "FUNCTION_NAME"
@@ -341,6 +368,7 @@ def validate_function(tokens):
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         i += 1
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 tokens = (
     'FUNCTION_NAME',
@@ -362,7 +390,8 @@ tokens = (
     'CASE',
     'COLON',
     'SWITCH',
-    'DEFAULT'
+    'DEFAULT',
+    'TYPE'
 )
 
 t_OPEN_PARENTHESIS = r'\('
@@ -372,6 +401,14 @@ t_CLOSE_BRACKETS = r'\}'
 t_COMMA = r','
 t_SEMICOLON = r';'
 t_COLON = r':'
+
+def t_TYPE(t):
+    r'\b(int|string|char|float|double)\b'
+    return t
+
+def t_FORMAT_STRING(t):
+    r'"([^"\\]*(\\.[^"\\]*)*)"'
+    return t
 
 def t_FUNCTION_NAME(t):
     r'printf'
@@ -399,10 +436,6 @@ def t_FOR(t):
 
 def t_VARIABLE(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
-    return t
-
-def t_FORMAT_STRING(t):
-    r'"([^"\\]*(\\.[^"\\]*)*)"'
     return t
 
 def t_NUMBER(t):
@@ -444,7 +477,7 @@ def t_error(t):
 lexer = lex.lex()
 
 
-f = open('switch.txt')
+f = open('input.txt')
 lines = f.readlines()
 
 invalid = False
