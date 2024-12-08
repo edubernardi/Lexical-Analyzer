@@ -16,6 +16,9 @@ def validate(tokens):
         tokens = validate_declaration(tokens)
     elif tokens[0] == 'IF':
         tokens = validate_if(tokens)
+    elif len(tokens) > 1:
+        if tokens[0] == 'VARIABLE' and tokens[1] == 'ATTRIBUTION':
+            tokens = validate_attribution(tokens)
     return tokens
 
 def validate_if(tokens):
@@ -102,6 +105,8 @@ def validate_declaration(tokens):
                 return tokens
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        else:
+            raise SyntaxError(f"Expected {expected_next}, got {tokens}")        
     raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_switch(tokens):
@@ -214,7 +219,6 @@ def validate_while(tokens):
         
 def validate_for(tokens):
     expected_next = "FOR"
-    condition = False
     i = 0 
     while i < len(tokens):
         if tokens[i] == "FOR":
@@ -227,20 +231,24 @@ def validate_for(tokens):
             if expected_next == "OPEN_PARENTHESIS":
                 tokens = validate_attribution(tokens[i + 1:])
                 i = 0
+                expected_next = "VARIABLE"
                 if tokens is None:
                     raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == "VARIABLE":
+            if expected_next == "VARIABLE":
+                tokens = validate_condition(tokens[i:])
                 expected_next = "SEMICOLON"
+                i = 0
+                if tokens is None:
+                    raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         elif tokens[i] == "SEMICOLON":
             if expected_next == "SEMICOLON":
-                if not condition:
-                    tokens = validate_condition(tokens[i + 1:])
-                    condition = True
-                    expected_next = "SEMICOLON"
-                else:
-                    tokens = validate_increment(tokens[i + 1:])
-                    expected_next = "OPEN_BRACKETS"
+                tokens = validate_increment(tokens[i + 1:])
+                expected_next = "OPEN_BRACKETS"
                 i = 0
                 if tokens is None:
                     raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
@@ -320,7 +328,8 @@ def validate_attribution(tokens):
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         elif tokens[i] == "SEMICOLON":
             if tokens[i] in expected_next:
-                return tokens[i:]
+                tokens = validate(tokens[i + 1:])
+                return tokens
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         else:
@@ -516,7 +525,7 @@ def t_VARIABLE(t):
     return t
 
 def t_NUMBER(t):
-    r'\d+(\.\d+)?'  # Inteiros e float com n casas decimais
+    r'\d+(\.\d+)?'
     t.value = float(t.value) if '.' in t.value else int(t.value)
     return t
 
@@ -553,8 +562,7 @@ def t_error(t):
 # Inicializando o lexer
 lexer = lex.lex()
 
-
-f = open('types.txt')
+f = open('for.txt')
 lines = f.readlines()
 
 invalid = False

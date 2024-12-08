@@ -2,7 +2,7 @@ for (i = 1; i <= 10; i += 5) {
     while (count <= 10) {
         while (a <= 5) {
             if (condition1) {
-                int a
+                int a;
             } else {
                 printf("Number is 1");
             }
