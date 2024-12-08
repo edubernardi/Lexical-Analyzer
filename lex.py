@@ -14,7 +14,63 @@ def validate(tokens):
         tokens = validate_switch(tokens)
     elif tokens[0] == 'TYPE':
         tokens = validate_declaration(tokens)
+    elif tokens[0] == 'IF':
+        tokens = validate_if(tokens)
     return tokens
+
+def validate_if(tokens):
+    expected_next = "IF"
+    hasElse = False
+    i = 0 
+    while i < len(tokens):
+        if tokens[i] == 'IF':
+            if expected_next == 'IF':
+                expected_next = "OPEN_PARENTHESIS"
+                i += 1
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == "OPEN_PARENTHESIS":
+            if expected_next == "OPEN_PARENTHESIS":
+                tokens = validate_condition(tokens[i + 1:])
+                i = 0
+                if tokens is None:
+                    raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+                expected_next = "CLOSE_PARENTHESIS"
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == 'CLOSE_PARENTHESIS':
+            if expected_next == 'CLOSE_PARENTHESIS':
+                i += 1
+                expected_next = "OPEN_BRACKETS"
+        elif tokens[i] == "OPEN_BRACKETS":
+            if expected_next == "OPEN_BRACKETS":
+                tokens = validate(tokens[i + 1:])
+                i = 0
+                if tokens is None:
+                    raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+                expected_next = "CLOSE_BRACKETS"
+        elif tokens[i] == "CLOSE_BRACKETS":
+            if expected_next == "CLOSE_BRACKETS":
+                if hasElse:
+                    tokens = validate(tokens[i + 1:])
+                    return tokens
+                else:
+                    if len(tokens[i + 1:]) > 0:
+                        if tokens[i + 1] == 'ELSE':
+                            i += 1
+                            expected_next = "ELSE"
+                        else:
+                            tokens = validate(tokens[i + 1:])
+                            return tokens
+                    else:
+                        tokens = validate(tokens[i + 1:])
+                        return tokens
+        elif tokens[i] == "ELSE":
+            if tokens[i] in expected_next:
+                i += 1
+                expected_next = "OPEN_BRACKETS"
+                hasElse = True
+    raise SyntaxError(f"Expected {expected_next}, got {tokens}")
 
 def validate_declaration(tokens):
     expected_next = 'TYPE'
@@ -26,9 +82,20 @@ def validate_declaration(tokens):
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         elif tokens[i] == 'VARIABLE':
             if tokens[i] in expected_next:
+                expected_next = ['SEMICOLON', 'COMMA']
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == 'COMMA':
+            if tokens[i] in expected_next:
+                expected_next = 'VARIABLE'
+            else:
+                raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        elif tokens[i] == 'VARIABLE':
+            if tokens[i] in expected_next:
                 expected_next = 'SEMICOLON'
             else:
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
+        
         elif tokens[i] == 'SEMICOLON':
             if tokens[i] in expected_next:
                 tokens = validate(tokens[i + 1:])
@@ -341,7 +408,7 @@ def validate_function(tokens):
                 raise SyntaxError(f"Expected {expected_next}, got {tokens[i]}")
         
         elif expected_next == "COMMA_OR_CLOSE":
-            if tokens[i] == 'COMMA' or tokens[i] == 'OPERATOR':
+            if tokens[i] == 'COMMA' or tokens[i] == 'ARITHMETIC':
                 expected_next = "VARIABLE"
                 arguments_section = True
             elif tokens[i] == 'CLOSE_PARENTHESIS':
@@ -391,7 +458,9 @@ tokens = (
     'COLON',
     'SWITCH',
     'DEFAULT',
-    'TYPE'
+    'TYPE',
+    'IF',
+    'ELSE'
 )
 
 t_OPEN_PARENTHESIS = r'\('
@@ -432,6 +501,14 @@ def t_WHILE(t):
 
 def t_FOR(t):
     r'for'
+    return t
+
+def t_IF(t):
+    r'if'
+    return t
+
+def t_ELSE(t):
+    r'else'
     return t
 
 def t_VARIABLE(t):
@@ -477,7 +554,7 @@ def t_error(t):
 lexer = lex.lex()
 
 
-f = open('input.txt')
+f = open('types.txt')
 lines = f.readlines()
 
 invalid = False
